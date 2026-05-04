@@ -35,7 +35,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MALiN_pozycjonowanieTheme {
-                // Inicjalizacja ViewModelu z użyciem fabryki i RetrofitClienta
                 val viewModel: MainViewModel = viewModel(
                     factory = MainViewModelFactory(RetrofitClient.qrRepository)
                 )
