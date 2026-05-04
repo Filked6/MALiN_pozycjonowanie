@@ -1,55 +1,49 @@
 package pl.filked.malin_pozycjonowanie
 
 import android.os.Bundle
-import android.view.View
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanIntentResult
 import com.journeyapps.barcodescanner.ScanOptions
-import pl.filked.malin_pozycjonowanie.data.dataSources.BeaconDataSource
-import pl.filked.malin_pozycjonowanie.domain.model.Beacon
+import pl.filked.malin_pozycjonowanie.data.ResultState
+import pl.filked.malin_pozycjonowanie.data.RetrofitClient
 import pl.filked.malin_pozycjonowanie.ui.MainViewModel
+import pl.filked.malin_pozycjonowanie.ui.MainViewModelFactory
 import pl.filked.malin_pozycjonowanie.ui.theme.MALiN_pozycjonowanieTheme
 
-
-class MainActivity : ComponentActivity(){
-    companion object {
-        private const val BEACONS_FILE_NAME = "beacons.json"
-    }
-
-    private val dataSource = BeaconDataSource(
-        inputStreamProvider = { assets.open(BEACONS_FILE_NAME) }
-    )
-    private val viewModel = MainViewModel(dataSource)
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MALiN_pozycjonowanieTheme {
+                // Inicjalizacja ViewModelu z użyciem fabryki i RetrofitClienta
+                val viewModel: MainViewModel = viewModel(
+                    factory = MainViewModelFactory(RetrofitClient.qrRepository)
+                )
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    BeaconList(
+                    MainScreen(
                         viewModel = viewModel,
                         modifier = Modifier.padding(innerPadding)
-
                     )
                 }
             }
@@ -58,32 +52,64 @@ class MainActivity : ComponentActivity(){
 }
 
 @Composable
-fun BeaconList (
+fun MainScreen(
     viewModel: MainViewModel,
-    modifier: Modifier
+    modifier: Modifier = Modifier
 ) {
-    val beacons = viewModel.beacons.collectAsState()
-    val context = LocalContext.current
+    // Obserwacja stanów z ViewModelu
+    val scannedText by viewModel.scannedText.collectAsState()
+    val locationState by viewModel.locationState.collectAsState()
+
+    // Rejestracja skanera
     val zxingScannerLauncher = rememberLauncherForActivityResult(
         contract = ScanContract()
-    ) { result: ScanIntentResult ->
-        val qrContent = result.contents
-
-        if (qrContent.isNullOrBlank()) {
-            //viewModel.cancelQrScanning()
-        } else {
-            //viewModel.handleQrContent(qrContent)
+    ) { result ->
+        if (result.contents != null) {
+            viewModel.processQrCode(result.contents)
         }
-        Toast.makeText(context, qrContent, Toast.LENGTH_LONG).show()
     }
 
-    Button(
-        onClick = {zxingScannerLauncher.launch(ScanOptions())},
-        modifier = Modifier
-            .padding(top = 40.dp)
-    ){
-        Text(
-            text = "Skanuj QR CODE"
-        )
+    Column(
+        modifier = modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Button(
+            onClick = {
+                zxingScannerLauncher.launch(ScanOptions())
+            }
+        ) {
+            Text(text = "Skanuj QR CODE")
+        }
+
+        if (scannedText.isNotBlank()) {
+            Text(
+                text = "Zeskanowane ID: $scannedText",
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+
+        // Obsługa stanu z serwera (Lokalizacja)
+        when (val state = locationState) {
+            is ResultState.Loading -> {
+                CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
+            }
+            is ResultState.Success -> {
+                Text(
+                    text = "Lokalizacja: X (Szer): ${state.data.longitude}, Y (Dł): ${state.data.latitude}",
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+            is ResultState.Error -> {
+                Text(
+                    text = "Błąd: ${state.throwable.localizedMessage}",
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = androidx.compose.ui.graphics.Color.Red
+                )
+            }
+            null -> {
+                // Pusty stan początkowy
+            }
+        }
     }
 }
