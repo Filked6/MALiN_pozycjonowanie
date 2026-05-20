@@ -18,7 +18,6 @@ class MainViewModel(
     private val _scannedText = MutableStateFlow("")
     val scannedText: StateFlow<String> = _scannedText.asStateFlow()
 
-    // Nowy stan do trzymania wyniku z serwera
     private val _locationState = MutableStateFlow<ResultState<Position>?>(null)
     val locationState: StateFlow<ResultState<Position>?> = _locationState.asStateFlow()
 
@@ -28,17 +27,14 @@ class MainViewModel(
         val lastPhrase = qrContent.substringAfterLast("/")
         _scannedText.value = lastPhrase
 
-        // Zaczynamy ładowanie
         _locationState.value = ResultState.Loading
 
         viewModelScope.launch {
-            // Zapisujemy wynik w stanie (Success lub Error)
             _locationState.value = repository.getPosition(lastPhrase)
         }
     }
 }
 
-// Fabryka pozwala na poprawne utworzenie ViewModelu z argumentem (Repository)
 class MainViewModelFactory(private val repository: QrRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MainViewModel::class.java)) {

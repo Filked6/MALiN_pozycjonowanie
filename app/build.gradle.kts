@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "pl.filked.malin_pozycjonowanie"
-        minSdk = 26
+        minSdk = 28
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -57,11 +57,10 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-
     implementation(libs.arcgis.maps.kotlin)
-    implementation(platform(libs.arcgis.maps.kotlin.toolkit.bom))
     implementation(libs.arcgis.maps.kotlin.toolkit.geoview.compose)
-    implementation(libs.arcgis.maps.kotlin.toolkit.authentication)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.arcgis.maps.kotlin)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
