@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.arcgismaps.Color
+import com.arcgismaps.geometry.GeometryEngine
 import com.arcgismaps.geometry.Point
 import com.arcgismaps.geometry.SpatialReference
 import com.arcgismaps.mapping.Viewpoint
@@ -69,16 +70,28 @@ fun MapScreen() {
             is ResultState.Success -> {
                 val position = state.data
 
-                val point = Point(
+                val pointPUWG = Point(
                     x = position.longitude,
                     y = position.latitude,
+                    spatialReference = SpatialReference(2180)
+                )
+
+                val pointWgs84 = GeometryEngine.projectOrNull(
+                    geometry = pointPUWG,
                     spatialReference = SpatialReference.wgs84()
                 )
+
+                if (pointWgs84 == null) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Błąd: nie udało się przeliczyć współrzędnych")
+                    }
+                    return@LaunchedEffect
+                }
 
                 graphicsOverlay.graphics.clear()
                 graphicsOverlay.graphics.add(
                     Graphic(
-                        geometry = point,
+                        geometry = pointWgs84,
                         symbol = SimpleMarkerSymbol(
                             style = SimpleMarkerSymbolStyle.Circle,
                             color = Color.red,
@@ -90,8 +103,8 @@ fun MapScreen() {
                 scope.launch {
                     mapViewProxy.setViewpoint(
                         Viewpoint(
-                            latitude = position.latitude,
-                            longitude = position.longitude,
+                            latitude = pointWgs84.y,
+                            longitude = pointWgs84.x,
                             scale = 5000.0
                         )
                     )
