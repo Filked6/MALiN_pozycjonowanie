@@ -77,7 +77,7 @@ fun SimpleDropdownMenu(
 
 @Composable
 fun ChooseScreen(navController: NavController) {
-    val museumList = listOf("Politechnika Warszawska")
+    val museumList = listOf("Gmach Główny")
     var mySelection by remember { mutableStateOf(museumList[0]) }
 
     Box(

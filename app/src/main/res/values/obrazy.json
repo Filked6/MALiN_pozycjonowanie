@@ -1,0 +1,38 @@
+[
+  {
+    "id": 243,
+    "title": "Mona Lisa",
+    "description": "Obraz olejny namalowany na topolowej desce przez Leonarda da Vinci, artystę włoskiego renesansu. Jego nazwa pochodzi od słowa mona, które w dialekcie toskańskim jest skrótem od tytułu ma donna („moja pani”), oraz imienia domniemanego tematu portretu. We włoskim i hiszpańskim znany jest jako La Gioconda, a we francuskim La Joconde – od nazwy rodu kupca, który zamówił dzieło. Obraz powstał w latach 1503–1507.",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg"
+  },
+  {
+    "id": 244,
+    "title": "Dama z gronostajem",
+    "description": "Znany również jako Portret Cecylii Gallerani, Portret damy z gronostajem, Dama z łasiczką, Dama z łasicą. Obraz olejny namalowany przez Leonarda da Vinci około 1489–1490 roku w Mediolanie. Na portrecie została uwieczniona Cecylia Gallerani, kochanka księcia Ludwika Sforzy.",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Lady_with_an_Ermine_-_Leonardo_da_Vinci_-_Google_Art_Project.jpg"
+  },
+  {
+    "id": 483,
+    "title": "Dawid",
+    "description": "Marmurowa rzeźba Michała Anioła przedstawiająca biblijnego Dawida bezpośrednio przed walką z Goliatem. W przeciwieństwie do obowiązującej wówczas tradycji, gdzie Dawida prezentowano jako młodego chłopca, u którego stóp leżała obcięta głowa Goliata, Michał Anioł zdecydował się ukazać nagiego Dawida, przymierzającego się do walki. Prace nad rzeźbą rozpoczęły się w 1501 roku. Dzieło ukończono na początku 1504 roku, a uroczyste odsłonięcie nastąpiło 18 maja 1504 roku. Posąg przyczynił się do wzrostu popularności Michała Anioła i stał się jednym z najbardziej znanych dzieł sztuki na świecie.",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/b/bb/%27David%27_by_Michelangelo_Fir_JBU004.jpg"
+  },
+  {
+    "id": 1281,
+    "title": "Bitwa pod Grunwaldem",
+    "description": "Obraz olejny Jana Matejki namalowany w latach 1872–1878. Obraz ma rozmiar 426 × 987 cm. Wśród przedstawionego na obrazie walczącego tłumu wyróżniono wiele postaci historycznych z obu stron starcia. Dzieło symbolicznie przedstawia bitwę w momencie, gdy wciąż toczą się zacięte walki, ale szala zwycięstwa przechyla się już na stronę polsko-litewską.",
+    "image": "https://pl.wikipedia.org/wiki/Bitwa_pod_Grunwaldem_(obraz_Jana_Matejki)#/media/Plik:Jan_Matejko,_Bitwa_pod_Grunwaldem.jpg"
+  },
+  {
+    "id": 464,
+    "title": "Konstytucja 3 Maja 1791 roku",
+    "description": "Obraz Jana Matejki powstawał od stycznia do października 1891 roku. W maju prace były na tyle zaawansowane, że możliwe było pokazanie płótna na jubileuszowej wystawie w Sukiennicach z okazji 100. rocznicy uchwalenia konstytucji. Przez cały okres II wojny światowej obraz był ukrywany przed okupantem niemieckim we wsi Chotomów.",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/d/db/Constitution_of_May_3%2C_1791_by_Jan_Matejko.PNG"
+  },
+  {
+    "id": 254,
+    "title": "Kwiaciarki",
+    "description": "Obraz Olgi Boznańskiej namalowany w 1889 roku w technice olejnej. Był prezentowany na wystawie Towarzystwa Przyjaciół Sztuk Pięknych w Krakowie w 1889 roku. Artystka inspirowała się japonizmem, co widać w kompozycji, kadrowaniu oraz detalach takich jak wachlarze uchiwa. Obraz przedstawia trzy kwiaciarki w harmonijnej, wieloplanowej kompozycji.",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Olga_Bozna%C5%84ska_1889_Kwiaciarki.jpg"
+  }
+]
