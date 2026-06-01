@@ -10,14 +10,17 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 composeBom = "2026.03.00"
+navigationCompose = "2.9.8"
 retrofit = "3.1.0-SNAPSHOT"
 retrofitVersion = "3.0.0"
 serializationJson = "1.10.0"
 zxingAndroidEmbedded = "4.3.0"
+material3 = "1.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 arcgis-maps-kotlin = { module = "com.esri:arcgis-maps-kotlin", version.ref = "arcgisMapsKotlin" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -38,6 +41,7 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingAndroidEmbedded" }
 arcgis-maps-kotlin-toolkit-geoview-compose = { module = "com.esri:arcgis-maps-kotlin-toolkit-geoview-compose", version.ref = "arcgisMapsKotlin" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
