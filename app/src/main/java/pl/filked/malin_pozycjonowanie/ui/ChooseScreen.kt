@@ -117,7 +117,7 @@ fun ChooseScreen(navController: NavController) {
                 contentAlignment = Alignment.Center
             ){
                 Text(
-                    text = "Chcę to!",
+                    text = "Chcę to!!",
                     fontSize = 20.sp,
                 )
             }
