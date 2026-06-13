@@ -14,16 +14,30 @@ class QrRepository(
         qrText: String
     ): ResultState<Position> {
         return try {
-            val response = api.getLocationData(query = "qr_text='$qrText'")
-            val geometry = response.features.firstOrNull()?.geometry
-            if (geometry == null){
-                ResultState.Error(Exception("Geometry is null"))
+
+            val response = api.getLocationData(
+                query = "qr_text='$qrText'"
+            )
+
+            val feature = response.features.firstOrNull()
+            if (feature == null) {
+                ResultState.Error(
+                    Exception("Feature is null")
+                )
             } else {
-                ResultState.Success(Position(geometry.y, geometry.x))
+                ResultState.Success(
+                    Position(
+                        id = feature.attributes.id,
+                        latitude = feature.geometry.y,
+                        longitude = feature.geometry.x
+                    )
+                )
             }
 
         } catch (exception: Exception) {
             ResultState.Error(exception)
         }
+
     }
+
 }

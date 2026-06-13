@@ -5,7 +5,12 @@ data class DataClassApiResponse(
 )
 
 data class Feature(
+    val attributes: Attributes,
     val geometry: Geometry
+)
+
+data class Attributes(
+    val id: Int,
 )
 
 data class Geometry(

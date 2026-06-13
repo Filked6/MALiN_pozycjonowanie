@@ -8,6 +8,7 @@ interface LocationInterface{
     @GET("server/rest/services/SION2_Geoopisy/sion_topo_qrcode/MapServer/0/query")
     suspend fun getLocationData(
         @Query("where") query:String,
+        @Query("outFields") outFields: String = "*",
         @Query("f") format: String = "json",
     ): DataClassApiResponse
 }
