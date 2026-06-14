@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import pl.filked.malin_pozycjonowanie.ui.theme.MALiN_pozycjonowanieTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,27 +11,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import pl.filked.malin_pozycjonowanie.ui.theme.MALiN_pozycjonowanieTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,8 +77,13 @@ fun SimpleDropdownMenu(
 
 @Composable
 fun ChooseScreen(navController: NavController) {
-    val museumList = listOf("Gmach Główny")
-    var mySelection by remember { mutableStateOf(museumList[0]) }
+    val museumDict = mapOf(
+        "Gmach Główny" to listOf(52.220598, 21.010170, 4000.0)
+    )
+
+    val museumList = museumDict.keys.toList()
+
+    var selectedMuseumName by remember { mutableStateOf(museumList.first()) }
 
     Box(
         modifier = Modifier
@@ -86,8 +91,7 @@ fun ChooseScreen(navController: NavController) {
             .background(Color(0xFFF2B5D4))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -95,27 +99,36 @@ fun ChooseScreen(navController: NavController) {
                 text = "Wybierz muzeum",
                 color = Color(0xFF445E93),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier.padding(bottom = 16.dp)
             )
+
             SimpleDropdownMenu(
                 options = museumList,
-                selectedOption = mySelection,
+                selectedOption = selectedMuseumName,
                 onOptionSelected = { newSelection ->
-                    mySelection = newSelection
+                    selectedMuseumName = newSelection
                     println("Wybrano: $newSelection")
                 }
             )
+
             Box(
                 modifier = Modifier
                     .width(200.dp)
                     .height(50.dp)
                     .background(Color.White, RoundedCornerShape(16.dp))
                     .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
-                    .clickable{
-                        navController.navigate("map_screen")
+                    .clickable {
+                        val coords = museumDict[selectedMuseumName]
+                        if (coords != null && coords.size == 3) {
+                            val lat = coords[0]
+                            val lon = coords[1]
+                            val scale = coords[2]
+
+                            navController.navigate("map_screen/$lat/$lon/$scale")
+                        }
                     },
                 contentAlignment = Alignment.Center
-            ){
+            ) {
                 Text(
                     text = "Chcę to!!",
                     fontSize = 20.sp,
@@ -127,7 +140,7 @@ fun ChooseScreen(navController: NavController) {
 
 @Preview(showBackground = true)
 @Composable
-fun ChooseScreenPreview(){
+fun ChooseScreenPreview() {
     MALiN_pozycjonowanieTheme {
         ChooseScreen(navController = rememberNavController())
     }

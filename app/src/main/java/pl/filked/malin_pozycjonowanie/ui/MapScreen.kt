@@ -22,10 +22,15 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.arcgismaps.Color
+import com.arcgismaps.geometry.Geometry
 import com.arcgismaps.geometry.GeometryEngine
 import com.arcgismaps.geometry.Point
 import com.arcgismaps.geometry.SpatialReference
 import com.arcgismaps.mapping.Viewpoint
+import com.arcgismaps.mapping.symbology.SimpleFillSymbol
+import com.arcgismaps.mapping.symbology.SimpleFillSymbolStyle
+import com.arcgismaps.mapping.symbology.SimpleLineSymbol
+import com.arcgismaps.mapping.symbology.SimpleLineSymbolStyle
 import com.arcgismaps.mapping.symbology.SimpleMarkerSymbol
 import com.arcgismaps.mapping.symbology.SimpleMarkerSymbolStyle
 import com.arcgismaps.mapping.view.Graphic
@@ -40,6 +45,7 @@ import kotlinx.coroutines.launch
 import pl.filked.malin_pozycjonowanie.data.ResultState
 import pl.filked.malin_pozycjonowanie.data.RetrofitClient
 import pl.filked.malin_pozycjonowanie.domain.model.Position
+import androidx.core.graphics.toColorInt
 
 data class Artwork(
     val id: Int,
@@ -58,7 +64,11 @@ fun loadArtworks(context: Context): List<Artwork> {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen() {
+fun MapScreen(
+    lat: Double,
+    lon: Double,
+    scale: Double
+) {
 
     val viewModel: MainViewModel = viewModel(
         factory = MainViewModelFactory(RetrofitClient.qrRepository)
@@ -69,7 +79,7 @@ fun MapScreen() {
 
     val locationState by viewModel.locationState.collectAsState()
 
-    val map = remember { createArcGisMap() }
+    val map = remember(lat, lon, scale) { createArcGisMap(lat, lon, scale) }
     val mapViewProxy = remember { MapViewProxy() }
 
     val graphicsOverlay = remember { GraphicsOverlay() }
@@ -89,6 +99,72 @@ fun MapScreen() {
     ) { result ->
         result.contents?.let {
             viewModel.processQrCode(it)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            val rawJsonString = context.assets.open("parter.json")
+                .bufferedReader()
+                .use { it.readText() }
+
+            val jsonObject = org.json.JSONObject(rawJsonString)
+
+            val fillSymbol = SimpleFillSymbol(
+                style = SimpleFillSymbolStyle.Solid,
+                color = Color("#DDCAD9".toColorInt()),
+                outline = SimpleLineSymbol(
+                    style = SimpleLineSymbolStyle.Solid,
+                    color = Color("#7C616C".toColorInt()),
+                    width = 2f
+                )
+            )
+
+            if (jsonObject.has("features")) {
+                val featuresArray = jsonObject.getJSONArray("features")
+                Log.d("MY_DEBUG", "Znaleziono obiektów do narysowania: ${featuresArray.length()}")
+
+                for (i in 0 until featuresArray.length()) {
+                    val feature = featuresArray.getJSONObject(i)
+
+                    if (feature.has("geometry")) {
+                        val geometryJson = feature.getJSONObject("geometry")
+
+                        val sr = org.json.JSONObject()
+                        sr.put("wkid", 2180)
+                        geometryJson.put("spatialReference", sr)
+
+                        val fixedJsonString = geometryJson.toString()
+                        val geometry = Geometry.fromJsonOrNull(fixedJsonString)
+
+                        if (geometry != null) {
+                            val areaGraphic = Graphic(
+                                geometry = geometry,
+                                symbol = fillSymbol
+                            )
+                            graphicsOverlay.graphics.add(areaGraphic)
+                        }
+                    }
+                }
+                Log.d("MY_DEBUG", "Wszystkie obiekty zostały pomyślnie dodane!")
+
+            } else if (jsonObject.has("geometry") || jsonObject.has("rings")) {
+                val geometryJson = if (jsonObject.has("geometry")) jsonObject.getJSONObject("geometry") else jsonObject
+
+                val sr = org.json.JSONObject()
+                sr.put("wkid", 2180)
+                geometryJson.put("spatialReference", sr)
+
+                val geometry = Geometry.fromJsonOrNull(geometryJson.toString())
+                if (geometry != null) {
+                    graphicsOverlay.graphics.add(Graphic(geometry, fillSymbol))
+                }
+            } else {
+                Log.e("MY_DEBUG", "Nie znaleziono ani tablicy 'features', ani 'geometry'.")
+            }
+
+        } catch (e: Exception) {
+            Log.e("MY_DEBUG", "Błąd odczytu lub w strukturze pliku test.json: ${e.message}")
         }
     }
 
@@ -114,7 +190,6 @@ fun MapScreen() {
                 selectedArtwork = artworks.find { it.id == position.id }
                 sheetVisible = true
 
-                graphicsOverlay.graphics.clear()
                 graphicsOverlay.graphics.add(
                     Graphic(
                         geometry = pointWgs84,
