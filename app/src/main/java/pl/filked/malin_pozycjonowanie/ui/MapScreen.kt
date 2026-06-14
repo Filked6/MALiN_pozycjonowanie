@@ -3,20 +3,21 @@ package pl.filked.malin_pozycjonowanie.ui
 import android.content.Context
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -44,8 +45,6 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.launch
 import pl.filked.malin_pozycjonowanie.data.ResultState
 import pl.filked.malin_pozycjonowanie.data.RetrofitClient
-import pl.filked.malin_pozycjonowanie.domain.model.Position
-import androidx.core.graphics.toColorInt
 
 data class Artwork(
     val id: Int,
@@ -82,8 +81,9 @@ fun MapScreen(
     val map = remember(lat, lon, scale) { createArcGisMap(lat, lon, scale) }
     val mapViewProxy = remember { MapViewProxy() }
 
-    val graphicsOverlay = remember { GraphicsOverlay() }
-    val graphicsOverlays = remember { listOf(graphicsOverlay) }
+    val polygonsOverlay = remember { GraphicsOverlay() }
+    val markerOverlay = remember { GraphicsOverlay() }
+    val graphicsOverlays = remember { listOf(polygonsOverlay, markerOverlay) }
 
     val artworks = remember { loadArtworks(context) }
 
@@ -94,10 +94,15 @@ fun MapScreen(
         skipPartiallyExpanded = true
     )
 
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var selectedArtworkFromList by remember { mutableStateOf(artworks.firstOrNull()) }
+    var isSearchFromList by remember { mutableStateOf(false) }
+
     val qrLauncher = rememberLauncherForActivityResult(
         contract = ScanContract()
     ) { result ->
         result.contents?.let {
+            isSearchFromList = false
             viewModel.processQrCode(it)
         }
     }
@@ -122,14 +127,10 @@ fun MapScreen(
 
             if (jsonObject.has("features")) {
                 val featuresArray = jsonObject.getJSONArray("features")
-                Log.d("MY_DEBUG", "Znaleziono obiektów do narysowania: ${featuresArray.length()}")
-
                 for (i in 0 until featuresArray.length()) {
                     val feature = featuresArray.getJSONObject(i)
-
                     if (feature.has("geometry")) {
                         val geometryJson = feature.getJSONObject("geometry")
-
                         val sr = org.json.JSONObject()
                         sr.put("wkid", 2180)
                         geometryJson.put("spatialReference", sr)
@@ -138,44 +139,20 @@ fun MapScreen(
                         val geometry = Geometry.fromJsonOrNull(fixedJsonString)
 
                         if (geometry != null) {
-                            val areaGraphic = Graphic(
-                                geometry = geometry,
-                                symbol = fillSymbol
-                            )
-                            graphicsOverlay.graphics.add(areaGraphic)
+                            polygonsOverlay.graphics.add(Graphic(geometry, fillSymbol))
                         }
                     }
                 }
-                Log.d("MY_DEBUG", "Wszystkie obiekty zostały pomyślnie dodane!")
-
-            } else if (jsonObject.has("geometry") || jsonObject.has("rings")) {
-                val geometryJson = if (jsonObject.has("geometry")) jsonObject.getJSONObject("geometry") else jsonObject
-
-                val sr = org.json.JSONObject()
-                sr.put("wkid", 2180)
-                geometryJson.put("spatialReference", sr)
-
-                val geometry = Geometry.fromJsonOrNull(geometryJson.toString())
-                if (geometry != null) {
-                    graphicsOverlay.graphics.add(Graphic(geometry, fillSymbol))
-                }
-            } else {
-                Log.e("MY_DEBUG", "Nie znaleziono ani tablicy 'features', ani 'geometry'.")
             }
-
         } catch (e: Exception) {
-            Log.e("MY_DEBUG", "Błąd odczytu lub w strukturze pliku test.json: ${e.message}")
+            Log.e("MY_DEBUG", "Błąd odczytu pliku parter.json: ${e.message}")
         }
     }
 
     LaunchedEffect(locationState) {
         when (val state = locationState) {
-
             is ResultState.Success -> {
                 val position = state.data
-
-                Log.d("MY_DEBUG", "Position received: $position")
-
                 val pointPUWG = Point(
                     x = position.longitude,
                     y = position.latitude,
@@ -188,14 +165,21 @@ fun MapScreen(
                 ) ?: return@LaunchedEffect
 
                 selectedArtwork = artworks.find { it.id == position.id }
-                sheetVisible = true
 
-                graphicsOverlay.graphics.add(
+                val currentSearchWasFromList = isSearchFromList
+
+                sheetVisible = !currentSearchWasFromList
+
+                val dotColor = if (currentSearchWasFromList) Color.blue else Color.red
+
+                markerOverlay.graphics.clear()
+
+                markerOverlay.graphics.add(
                     Graphic(
                         geometry = pointWgs84,
                         symbol = SimpleMarkerSymbol(
                             style = SimpleMarkerSymbolStyle.Circle,
-                            color = Color.red,
+                            color = dotColor,
                             size = 14f
                         )
                     )
@@ -210,11 +194,14 @@ fun MapScreen(
                         )
                     )
                 }
+
+                isSearchFromList = false
             }
 
             is ResultState.Error -> {
                 selectedArtwork = null
-                sheetVisible = true
+                sheetVisible = !isSearchFromList
+                isSearchFromList = false
             }
 
             else -> Unit
@@ -246,13 +233,84 @@ fun MapScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-
             MapView(
                 modifier = Modifier.fillMaxSize(),
                 arcGISMap = map,
                 mapViewProxy = mapViewProxy,
                 graphicsOverlays = graphicsOverlays
             )
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.TopCenter),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = androidx.compose.ui.graphics.Color.White
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ExposedDropdownMenuBox(
+                        expanded = dropdownExpanded,
+                        onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedArtworkFromList?.title ?: "Wybierz obraz...",
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent
+                            ),
+                            singleLine = true
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = dropdownExpanded,
+                            onDismissRequest = { dropdownExpanded = false }
+                        ) {
+                            artworks.forEach { artwork ->
+                                DropdownMenuItem(
+                                    text = { Text(artwork.title) },
+                                    onClick = {
+                                        selectedArtworkFromList = artwork
+                                        dropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(
+                        onClick = {
+                            selectedArtworkFromList?.let { artwork ->
+                                isSearchFromList = true
+                                viewModel.processArtworkId(artwork.id)
+                            }
+                        },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Pokaż na mapie",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
 
             if (locationState is ResultState.Loading) {
                 CircularProgressIndicator(
@@ -261,66 +319,35 @@ fun MapScreen(
             }
 
             if (sheetVisible) {
-
                 ModalBottomSheet(
                     sheetState = sheetState,
-                    onDismissRequest = {
-                        sheetVisible = false
-                    }
+                    onDismissRequest = { sheetVisible = false }
                 ) {
-
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                             .padding(16.dp)
                     ) {
-
                         if (selectedArtwork == null) {
-
-                            Text(
-                                text = "Brak obrazu",
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-
+                            Text(text = "Brak obrazu", style = MaterialTheme.typography.headlineSmall)
                             Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = "Nie znaleziono dopasowanego obiektu dla tego kodu QR.",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-
+                            Text(text = "Nie znaleziono dopasowanego obiektu w bazie.", style = MaterialTheme.typography.bodyMedium)
                         } else {
-
-                            Text(
-                                text = selectedArtwork?.title ?: "",
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-
+                            Text(text = selectedArtwork?.title ?: "", style = MaterialTheme.typography.headlineSmall)
                             Spacer(modifier = Modifier.height(12.dp))
-                            Log.d("MY_DEBUG", selectedArtwork?.image ?: "NULL IMAGE")
                             SubcomposeAsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(selectedArtwork?.image)
-                                    .addHeader(
-                                        "User-Agent",
-                                        "MalinAPP by TripTropTeam 1.0"
-                                    )
+                                    .addHeader("User-Agent", "MalinAPP by TripTropTeam 1.0")
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
+                                modifier = Modifier.fillMaxWidth().height(200.dp)
                             ) {
-
                                 when (painter.state) {
-
                                     is AsyncImagePainter.State.Loading -> {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                                 CircularProgressIndicator()
                                                 Spacer(modifier = Modifier.height(8.dp))
@@ -328,25 +355,13 @@ fun MapScreen(
                                             }
                                         }
                                     }
-
-                                    is AsyncImagePainter.State.Error -> {
-                                        Text("Nie udało się załadować obrazu")
-                                    }
-
-                                    else -> {
-                                        SubcomposeAsyncImageContent()
-                                    }
+                                    is AsyncImagePainter.State.Error -> Text("Nie udało się załadować obrazu")
+                                    else -> SubcomposeAsyncImageContent()
                                 }
                             }
-
                             Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = selectedArtwork?.description ?: "",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            Text(text = selectedArtwork?.description ?: "", style = MaterialTheme.typography.bodyMedium)
                         }
-
                         Spacer(modifier = Modifier.height(20.dp))
                     }
                 }

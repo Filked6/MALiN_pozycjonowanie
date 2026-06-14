@@ -40,4 +40,29 @@ class QrRepository(
 
     }
 
+    suspend fun getPositionById(id: Int): ResultState<Position> {
+        return try {
+            val response = api.getLocationData(
+                query = "id=$id"
+            )
+
+            val feature = response.features.firstOrNull()
+            if (feature == null) {
+                ResultState.Error(
+                    Exception("Nie znaleziono w bazie obiektu o ID: $id")
+                )
+            } else {
+                ResultState.Success(
+                    Position(
+                        id = feature.attributes.id,
+                        latitude = feature.geometry.y,
+                        longitude = feature.geometry.x
+                    )
+                )
+            }
+        } catch (exception: Exception) {
+            ResultState.Error(exception)
+        }
+    }
+
 }

@@ -33,7 +33,16 @@ class MainViewModel(
             _locationState.value = repository.getPosition(lastPhrase)
         }
     }
+
+    fun processArtworkId(id: Int) {
+        _locationState.value = ResultState.Loading
+
+        viewModelScope.launch {
+            _locationState.value = repository.getPositionById(id)
+        }
+    }
 }
+
 
 class MainViewModelFactory(private val repository: QrRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
