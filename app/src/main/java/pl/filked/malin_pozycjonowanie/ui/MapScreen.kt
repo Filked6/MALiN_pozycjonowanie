@@ -26,6 +26,7 @@ import com.arcgismaps.Color
 import com.arcgismaps.geometry.Geometry
 import com.arcgismaps.geometry.GeometryEngine
 import com.arcgismaps.geometry.Point
+import com.arcgismaps.geometry.Polyline
 import com.arcgismaps.geometry.SpatialReference
 import com.arcgismaps.mapping.Viewpoint
 import com.arcgismaps.mapping.symbology.SimpleFillSymbol
@@ -98,6 +99,8 @@ fun MapScreen(
     var selectedArtworkFromList by remember { mutableStateOf(artworks.firstOrNull()) }
     var isSearchFromList by remember { mutableStateOf(false) }
 
+    var userLocationPoint by remember { mutableStateOf<Point?>(null) }
+
     val qrLauncher = rememberLauncherForActivityResult(
         contract = ScanContract()
     ) { result ->
@@ -149,62 +152,116 @@ fun MapScreen(
         }
     }
 
-    LaunchedEffect(locationState) {
-        when (val state = locationState) {
-            is ResultState.Success -> {
-                val position = state.data
-                val pointPUWG = Point(
-                    x = position.longitude,
-                    y = position.latitude,
-                    spatialReference = SpatialReference(2180)
-                )
-
-                val pointWgs84 = GeometryEngine.projectOrNull(
-                    geometry = pointPUWG,
-                    spatialReference = SpatialReference.wgs84()
-                ) ?: return@LaunchedEffect
-
-                selectedArtwork = artworks.find { it.id == position.id }
-
-                val currentSearchWasFromList = isSearchFromList
-
-                sheetVisible = !currentSearchWasFromList
-
-                val dotColor = if (currentSearchWasFromList) Color.blue else Color.red
-
-                markerOverlay.graphics.clear()
-
-                markerOverlay.graphics.add(
-                    Graphic(
-                        geometry = pointWgs84,
-                        symbol = SimpleMarkerSymbol(
-                            style = SimpleMarkerSymbolStyle.Circle,
-                            color = dotColor,
-                            size = 14f
-                        )
+    Box {
+        LaunchedEffect(locationState) {
+            when (val state = locationState) {
+                is ResultState.Success -> {
+                    val position = state.data
+                    val pointPUWG = Point(
+                        x = position.longitude,
+                        y = position.latitude,
+                        spatialReference = SpatialReference(2180)
                     )
-                )
 
-                scope.launch {
-                    mapViewProxy.setViewpoint(
-                        Viewpoint(
-                            latitude = pointWgs84.y,
-                            longitude = pointWgs84.x,
-                            scale = 5000.0
+                    val fetchedPointWgs84 = GeometryEngine.projectOrNull(
+                        geometry = pointPUWG,
+                        spatialReference = SpatialReference.wgs84()
+                    ) ?: return@LaunchedEffect
+
+                    selectedArtwork = artworks.find { it.id == position.id }
+                    val currentSearchWasFromList = isSearchFromList
+
+                    markerOverlay.graphics.clear()
+
+                    if (!currentSearchWasFromList) {
+                        userLocationPoint = fetchedPointWgs84
+                        sheetVisible = true
+
+                        markerOverlay.graphics.add(
+                            Graphic(
+                                geometry = fetchedPointWgs84,
+                                symbol = SimpleMarkerSymbol(
+                                    style = SimpleMarkerSymbolStyle.Circle,
+                                    color = Color.red,
+                                    size = 14f
+                                )
+                            )
                         )
-                    )
+
+                        scope.launch {
+                            mapViewProxy.setViewpoint(
+                                Viewpoint(
+                                    latitude = fetchedPointWgs84.y,
+                                    longitude = fetchedPointWgs84.x,
+                                    scale = 5000.0
+                                )
+                            )
+                        }
+
+                    } else {
+
+                        sheetVisible = false
+
+                        userLocationPoint?.let { userPt ->
+
+                            markerOverlay.graphics.add(
+                                Graphic(
+                                    geometry = userPt,
+                                    symbol = SimpleMarkerSymbol(
+                                        style = SimpleMarkerSymbolStyle.Circle,
+                                        color = Color.red,
+                                        size = 14f
+                                    )
+                                )
+                            )
+
+                            val navigationLine = Polyline(listOf(userPt, fetchedPointWgs84))
+                            val lineSymbol = SimpleLineSymbol(
+                                style = SimpleLineSymbolStyle.Dash,
+                                color = Color("#000000".toColorInt()),
+                                width = 3f
+                            )
+                            markerOverlay.graphics.add(
+                                Graphic(
+                                    geometry = navigationLine,
+                                    symbol = lineSymbol
+                                )
+                            )
+                        }
+
+                        markerOverlay.graphics.add(
+                            Graphic(
+                                geometry = fetchedPointWgs84,
+                                symbol = SimpleMarkerSymbol(
+                                    style = SimpleMarkerSymbolStyle.Circle,
+                                    color = Color.blue,
+                                    size = 14f
+                                )
+                            )
+                        )
+
+                        scope.launch {
+                            mapViewProxy.setViewpoint(
+                                Viewpoint(
+                                    latitude = fetchedPointWgs84.y,
+                                    longitude = fetchedPointWgs84.x,
+                                    scale = 5000.0
+                                )
+                            )
+                        }
+                    }
+
+                    isSearchFromList = false
                 }
 
-                isSearchFromList = false
-            }
+                is ResultState.Error -> {
+                    selectedArtwork = null
+                    sheetVisible = !isSearchFromList
+                    isSearchFromList = false
+                }
 
-            is ResultState.Error -> {
-                selectedArtwork = null
-                sheetVisible = !isSearchFromList
-                isSearchFromList = false
+                else -> Unit
             }
-
-            else -> Unit
         }
     }
 
@@ -343,7 +400,9 @@ fun MapScreen(
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = null,
-                                modifier = Modifier.fillMaxWidth().height(200.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
                             ) {
                                 when (painter.state) {
                                     is AsyncImagePainter.State.Loading -> {
