@@ -109,6 +109,7 @@ fun MapScreen(
             viewModel.processQrCode(it)
         }
     }
+    //test
 
     LaunchedEffect(Unit) {
         try {
