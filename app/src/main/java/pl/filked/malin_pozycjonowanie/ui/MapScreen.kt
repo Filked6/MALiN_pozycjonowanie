@@ -101,6 +101,13 @@ fun MapScreen(
 
     var userLocationPoint by remember { mutableStateOf<Point?>(null) }
 
+    var floorExpanded by remember { mutableStateOf(false) }
+    var selectedFloor by remember { mutableStateOf("Wybór piętra") }
+
+    var mapViewExpanded by remember { mutableStateOf(false) }
+    var selectedMapView by remember { mutableStateOf("Widok mapy") }
+
+
     val qrLauncher = rememberLauncherForActivityResult(
         contract = ScanContract()
     ) { result ->
@@ -109,7 +116,6 @@ fun MapScreen(
             viewModel.processQrCode(it)
         }
     }
-    //test
 
     LaunchedEffect(Unit) {
         try {
@@ -366,6 +372,68 @@ fun MapScreen(
                             contentDescription = "Pokaż na mapie",
                             tint = MaterialTheme.colorScheme.primary
                         )
+                    }
+                }
+            }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 96.dp)
+                    .align(Alignment.TopCenter),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = androidx.compose.ui.graphics.Color.White
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { floorExpanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(selectedFloor)
+                        }
+
+                        DropdownMenu(
+                            expanded = floorExpanded,
+                            onDismissRequest = { floorExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Piętro 1") },
+                                onClick = {
+                                    selectedFloor = "Piętro 1"
+                                    floorExpanded = false
+                                }
+                            )
+                        }
+                    }
+
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { mapViewExpanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(selectedMapView)
+                        }
+
+                        DropdownMenu(
+                            expanded = mapViewExpanded,
+                            onDismissRequest = { mapViewExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Widok 2D") },
+                                onClick = {
+                                    selectedMapView = "Widok 2D"
+                                    mapViewExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
